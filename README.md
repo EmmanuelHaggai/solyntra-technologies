@@ -459,8 +459,10 @@ For issues with:
 - **USSD API**: Review Africa's Talking documentation
 - **General bugs**: Open GitHub issue with logs
 
+## 📺 Demo Video
+
+[Watch the system in action](https://www.youtube.com/watch?v=r0weTNSGCuc) - Complete USSD Bitcoin Lightning walkthrough
+
 ---
 
-**Built with ❤️ for the African Bitcoin community**# MeTTaProject
-# solyntra-technologies
-# solyntra-technologies
+**Built with ❤️ for the African Bitcoin community**
