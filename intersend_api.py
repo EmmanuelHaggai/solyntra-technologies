@@ -95,7 +95,13 @@ class IntersendClient:
         }
         
         logger.info(f"Creating collection for {phone_number}, amount: {amount} {currency}")
-        response = self._make_request('POST', '/api/v1/payment/collection/', data)
+        # Use the correct endpoint from PHP SDK - try with API version prefix
+        try:
+            response = self._make_request('POST', '/api/v1/payment/mpesa-stk-push/', data)
+        except Exception as e:
+            logger.warning(f"Failed with /api/v1/payment/mpesa-stk-push/: {e}")
+            # Fallback to simple path as in PHP
+            response = self._make_request('POST', '/payment/mpesa-stk-push/', data)
         
         if 'invoice' in response and 'invoice_id' in response['invoice']:
             logger.info(f"Collection created successfully: {response['invoice']['invoice_id']}")
@@ -105,7 +111,7 @@ class IntersendClient:
     
     def check_status(self, invoice_id: str) -> Dict[str, Any]:
         """
-        Check payment status by invoice ID
+        Check payment status by invoice ID - following PHP SDK pattern
         
         Args:
             invoice_id: Invoice ID from create_collection
@@ -114,8 +120,20 @@ class IntersendClient:
             Dict containing status information
         """
         logger.info(f"Checking status for invoice: {invoice_id}")
-        # Try status endpoint similar to PHP Collection->status()
-        response = self._make_request('GET', f'/api/v1/payment/collection/{invoice_id}/')
+        
+        # Follow PHP SDK pattern: POST to /payment/status/ with public_key and invoice_id
+        data = {
+            "public_key": self.publishable_key,
+            "invoice_id": invoice_id
+        }
+        
+        # Use POST method as per PHP SDK - try with API version prefix
+        try:
+            response = self._make_request('POST', '/api/v1/payment/status/', data)
+        except Exception as e:
+            logger.warning(f"Failed with /api/v1/payment/status/: {e}")
+            # Fallback to simple path as in PHP
+            response = self._make_request('POST', '/payment/status/', data)
         return response
     
     def poll_status(

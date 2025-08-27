@@ -101,8 +101,8 @@
 (SuccessMsg "payment_sent" "sw" "Malipo yamefanywa kikamilifu")
 
 ; Menu translations
-(MenuText "main_menu" "en" "Bitcoin Lightning\n1. Send BTC\n2. Receive BTC\n3. Send Invoice\n4. Top Up M-Pesa\n5. Withdraw M-Pesa\n0. Exit")
-(MenuText "main_menu" "sw" "Bitcoin Lightning\n1. Tuma BTC\n2. Pokea BTC\n3. Tuma Ankara\n4. Ingiza M-Pesa\n5. Toa M-Pesa\n0. Ondoka")
+(MenuText "main_menu" "en" "Bitcoin Lightning\n1. Send BTC\n2. Receive BTC\n3. Send Invoice\n4. Buy BTC (M-Pesa)\n5. Withdraw M-Pesa\n6. Buy Airtime\n0. Exit")
+(MenuText "main_menu" "sw" "Bitcoin Lightning\n1. Tuma BTC\n2. Pokea BTC\n3. Tuma Ankara\n4. Nunua BTC (M-Pesa)\n5. Toa M-Pesa\n6. Nunua Airtime\n0. Ondoka")
 
 ; Activity tracking
 (Activity "+254712345678" "login" "2025-08-23T10:00:00Z")

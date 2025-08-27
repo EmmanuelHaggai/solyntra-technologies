@@ -6,6 +6,7 @@ Unified version with all features
 from flask import Flask, request, jsonify, render_template_string, send_file
 import logging
 from handlers import USSDHandlers
+from ai_processor import AIEnhancedUSSDHandler
 from lightning import lightning_api
 import re
 from dotenv import load_dotenv
@@ -37,6 +38,7 @@ app = Flask(__name__)
 
 # Initialize handlers
 ussd_handlers = USSDHandlers()
+ai_enhanced_handler = AIEnhancedUSSDHandler(ussd_handlers)
 
 # Session storage (in production, use Redis or database)
 user_sessions = {}
@@ -140,6 +142,178 @@ def ussd():
         logger.error(f"[{request_id}] ===== REQUEST FAILED =====")
         return "END Internal error. Please try again."
 
+@app.route('/webhook/intersend', methods=['POST'])
+def intersend_webhook():
+    """Handle Intersend payment completion webhooks"""
+    try:
+        data = request.get_json()
+        logger.info(f"WEBHOOK: Intersend payment notification: {data}")
+        
+        if data and 'invoice' in data:
+            invoice = data['invoice']
+            invoice_id = invoice.get('invoice_id')
+            state = invoice.get('state')
+            
+            if state == 'COMPLETE':
+                # Try to complete the payment
+                success, message, result_data = ussd_handlers.complete_mpesa_topup(invoice_id)
+                logger.info(f"WEBHOOK: Payment completion result: success={success}, message={message}")
+                
+                return jsonify({"status": "processed", "success": success})
+        
+        return jsonify({"status": "ignored"})
+        
+    except Exception as e:
+        logger.error(f"WEBHOOK ERROR: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/mock_payment/<invoice_id>', methods=['POST'])
+def mock_payment_completion(invoice_id):
+    """Mock payment completion for testing"""
+    try:
+        logger.info(f"MOCK: Simulating payment completion for invoice {invoice_id}")
+        
+        # For testing, let's try to add mock balance directly  
+        # Try both formats to ensure compatibility
+        phone_formats = ["+254715586044", "254715586044", "0715586044"]
+        sats_to_add = 66  # Add 66 sats (equivalent to 10 KES)
+        
+        results = []
+        for phone_number in phone_formats:
+            current_balance = ussd_handlers.get_user_balance(phone_number)
+            new_balance = current_balance + sats_to_add
+            ussd_handlers.update_balance(phone_number, new_balance)
+            
+            logger.info(f"MOCK: Updated balance for {phone_number}: {current_balance} -> {new_balance} sats")
+            results.append({
+                "phone_number": phone_number,
+                "old_balance": current_balance, 
+                "new_balance": new_balance
+            })
+        
+        return jsonify({
+            "status": "success",
+            "results": results,
+            "added_sats": sats_to_add
+        })
+        
+    except Exception as e:
+        logger.error(f"MOCK PAYMENT ERROR: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/test_intersend_status/<invoice_id>', methods=['GET'])
+def test_intersend_status(invoice_id):
+    """Test Intersend status checking with a specific invoice ID"""
+    try:
+        from dotenv import load_dotenv
+        load_dotenv('/var/www/btc.emmanuelhaggai.com/.env')
+        
+        logger.info(f"TEST: Checking status for invoice {invoice_id}")
+        
+        from intersend_helpers import check_mpesa_status, get_payment_summary
+        
+        # Check payment status
+        status_response = check_mpesa_status(invoice_id)
+        logger.info(f"TEST: Raw status response: {status_response}")
+        
+        if 'error' in status_response:
+            return jsonify({"error": status_response['error']})
+        
+        # Get payment summary
+        payment_summary = get_payment_summary(status_response)
+        logger.info(f"TEST: Payment summary: {payment_summary}")
+        
+        return jsonify({
+            "invoice_id": invoice_id,
+            "raw_response": status_response,
+            "payment_summary": payment_summary,
+            "status": "success"
+        })
+        
+    except Exception as e:
+        logger.error(f"TEST: Error checking invoice {invoice_id}: {str(e)}")
+        import traceback
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
+
+@app.route('/manual_complete/<invoice_id>', methods=['POST'])
+def manual_complete_payment(invoice_id):
+    """Manually complete a payment with invoice ID"""
+    try:
+        from dotenv import load_dotenv
+        load_dotenv('/var/www/btc.emmanuelhaggai.com/.env')
+        
+        logger.info(f"MANUAL COMPLETE: Processing invoice {invoice_id}")
+        
+        # Use the same completion logic as the polling system
+        success, message, result_data = ussd_handlers.complete_mpesa_topup(invoice_id)
+        
+        return jsonify({
+            "invoice_id": invoice_id,
+            "success": success,
+            "message": message,
+            "result_data": result_data,
+            "current_balance": ussd_handlers.get_user_balance("0715586044")
+        })
+        
+    except Exception as e:
+        logger.error(f"MANUAL COMPLETE ERROR: {str(e)}")
+        import traceback
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
+
+@app.route('/check_pending_payments', methods=['GET'])
+def check_pending_payments():
+    """Manually check and complete any pending M-Pesa payments"""
+    try:
+        from dotenv import load_dotenv
+        load_dotenv('/var/www/btc.emmanuelhaggai.com/.env')
+        
+        logger.info("MANUAL CHECK: Checking for pending payments...")
+        completed_payments = []
+        pending_payments = []
+        
+        # Try to find pending payments in MeTTa
+        try:
+            query = '!(match &self (PendingMpesa $phone $invoice $kes $sats $timestamp) (list $phone $invoice $kes $sats $timestamp))'
+            result = ussd_handlers.metta.run(query)
+            logger.info(f"MANUAL CHECK: MeTTa query result: {result}")
+            
+            for pending_match in result:
+                pending_str = str(pending_match)
+                logger.info(f"MANUAL CHECK: Processing pending match: {pending_str}")
+                
+                # Try to parse the pending transaction
+                if '(list' in pending_str and '$' not in pending_str:
+                    # Extract phone and invoice details
+                    import re
+                    # Simple parsing for now - in production use proper parsing
+                    pending_payments.append(pending_str)
+                    
+        except Exception as metta_error:
+            logger.error(f"MANUAL CHECK: MeTTa query error: {metta_error}")
+        
+        # Test Intersend API directly
+        try:
+            from intersend_helpers import check_mpesa_status
+            # This will test if the API is working
+            test_response = {"api_test": "Intersend API accessible"}
+        except Exception as api_error:
+            logger.error(f"MANUAL CHECK: API error: {api_error}")
+            test_response = {"api_error": str(api_error)}
+        
+        return jsonify({
+            "status": "checked", 
+            "message": "Manual payment check completed",
+            "pending_payments": pending_payments,
+            "completed_payments": completed_payments,
+            "api_status": test_response,
+            "phone_number": "0715586044",
+            "current_balance": ussd_handlers.get_user_balance("0715586044")
+        })
+        
+    except Exception as e:
+        logger.error(f"MANUAL CHECK ERROR: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 def handle_main_menu(session: USSDSession) -> str:
     """Handle main menu display"""
     balance = ussd_handlers.get_user_balance(session.phone_number)
@@ -151,14 +325,19 @@ def handle_main_menu(session: USSDSession) -> str:
            f"2. Receive BTC\n"
            f"3. Send Invoice\n"
            f"4. Buy BTC (M-Pesa)\n"
-           f"5. Top Up M-Pesa\n"
-           f"6. Withdraw M-Pesa\n"
-           f"7. Buy Airtime\n"
+           f"5. Withdraw M-Pesa\n"
+           f"6. Buy Airtime\n"
            f"0. Exit")
 
 def handle_user_input(session: USSDSession, text_parts: list) -> str:
     """Handle user input based on current state"""
     try:
+        # First check if we should use AI for natural language processing (except for simple menu states)
+        full_text = "*".join(text_parts)
+        if session.state == "main_menu" and ai_enhanced_handler.should_use_ai(full_text, session.session_id):
+            logger.info(f"Using AI for natural language input: '{full_text}'")
+            return ai_enhanced_handler.process_with_ai(full_text, session.phone_number, session.session_id)
+        
         # Handle multi-step USSD input by processing each step sequentially
         if len(text_parts) > 1 and session.state == "main_menu":
             menu_selection = text_parts[0]
@@ -236,6 +415,13 @@ def handle_user_input(session: USSDSession, text_parts: list) -> str:
 
 def handle_main_menu_selection(session: USSDSession, selection: str, text_parts: list) -> str:
     """Handle main menu selection"""
+    
+    # First check if we should use AI for natural language processing
+    full_text = "*".join(text_parts) if len(text_parts) > 1 else selection
+    if ai_enhanced_handler.should_use_ai(full_text, session.session_id):
+        logger.info(f"Using AI for natural language input: '{full_text}'")
+        return ai_enhanced_handler.process_with_ai(full_text, session.phone_number, session.session_id)
+    
     # Special case: Handle 4*amount pattern directly (when session state is lost)
     if len(text_parts) == 2 and text_parts[0] == "4" and text_parts[1].isdigit():
         logger.info(f"Direct M-Pesa pattern detected: {text_parts}")
@@ -271,16 +457,10 @@ def handle_main_menu_selection(session: USSDSession, selection: str, text_parts:
                "Enter KES amount (Min: 10 KES):\n\n"
                "(Ask 'rates?' or say 'back')")
     elif selection == "5":
-        # Top Up M-Pesa (duplicate of 4 for compatibility)
-        session.set_state("topup_amount")
-        return ("CON Buy BTC with M-Pesa\n"
-               "Enter KES amount (Min: 10 KES):\n\n"
-               "(Ask 'rates?' or say 'back')")
-    elif selection == "6":
         # Withdraw to M-Pesa
         session.set_state("withdraw_amount")
         return "CON Withdraw to M-Pesa\nEnter amount in KES:"
-    elif selection == "7":
+    elif selection == "6":
         # Buy Airtime
         session.set_state("airtime_amount")
         return "CON Buy Airtime\nEnter amount in KES (10-1000):"

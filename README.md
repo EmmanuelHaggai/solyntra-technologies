@@ -20,8 +20,9 @@ Balance: X sats
 1. Send BTC       → Enter phone → Enter amount → Confirm
 2. Receive BTC    → Enter amount → Get invoice code
 3. Send Invoice   → Enter phone → Enter amount → Send via SMS
-4. Top Up M-Pesa  → Enter KES → Enter M-Pesa code → Convert
+4. Buy BTC (M-Pesa) → Enter KES → M-Pesa STK Push → Convert
 5. Withdraw M-Pesa → Enter KES → Enter M-Pesa number → Convert
+6. Buy Airtime    → Enter amount → Select carrier → Purchase
 0. Exit
 ```
 

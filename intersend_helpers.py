@@ -41,7 +41,7 @@ class IntersendPaymentHandler:
                 amount=amount,
                 phone_number=formatted_phone,
                 currency="KES",
-                method="M-PESA",
+                method="MPESA_STK_PUSH",
                 api_ref=reference or f"USSD_{int(time.time())}",
                 name="USSD User",
                 email=""

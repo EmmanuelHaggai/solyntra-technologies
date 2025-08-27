@@ -9,6 +9,7 @@ from lightning import lightning_api
 from intersend_helpers import initiate_mpesa_stk_push, check_mpesa_status, get_payment_summary
 import time
 import re
+import threading
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -253,7 +254,10 @@ class USSDHandlers:
             pending_atom = f'!(add-atom &self (PendingMpesa "{phone_number}" "{invoice_id}" {kes_amount} {sats_amount} "{timestamp}"))'
             self.metta.run(pending_atom)
             
-            return True, f"M-Pesa payment request sent to {phone_number}\nAmount: {kes_amount} KES ({sats_amount} sats)\nComplete payment on your phone to receive Bitcoin", {
+            # Start background polling to check payment completion
+            self._start_payment_polling(invoice_id, phone_number, kes_amount, sats_amount)
+            
+            return True, f"M-Pesa payment request sent to {phone_number}\nAmount: {kes_amount} KES ({sats_amount} sats)\nInvoice: {invoice_id}\nComplete payment on your phone to receive Bitcoin", {
                 "kes_amount": kes_amount,
                 "sats_amount": sats_amount,
                 "invoice_id": invoice_id,
@@ -513,6 +517,92 @@ class USSDHandlers:
                    "6. Buy Airtime\n"
                    "7. History\n"
                    "0. Exit")
+    
+    def _start_payment_polling(self, invoice_id: str, phone_number: str, kes_amount: int, sats_amount: int):
+        """Start background polling to check payment completion"""
+        def poll_payment():
+            # Ensure environment variables are loaded in polling thread
+            from dotenv import load_dotenv
+            load_dotenv('/var/www/btc.emmanuelhaggai.com/.env')
+            
+            logger.info(f"POLLING: Starting payment polling for invoice {invoice_id}")
+            logger.info(f"POLLING: Phone: {phone_number}, KES: {kes_amount}, Sats: {sats_amount}")
+            
+            max_attempts = 9  # Check 9 times (1.5 minutes)
+            interval = 10     # Every 10 seconds
+            
+            for attempt in range(max_attempts):
+                try:
+                    logger.info(f"POLLING: Attempt {attempt + 1}/{max_attempts} for invoice {invoice_id}")
+                    
+                    # Check payment status
+                    status_response = check_mpesa_status(invoice_id)
+                    
+                    if 'error' in status_response:
+                        logger.warning(f"POLLING: Error checking status: {status_response['error']}")
+                        time.sleep(interval)
+                        continue
+                    
+                    payment_summary = get_payment_summary(status_response)
+                    status = payment_summary.get('status', '').upper()
+                    failed_reason = payment_summary.get('failed_reason', '')
+                    failed_code = payment_summary.get('failed_code', '')
+                    
+                    logger.info(f"POLLING: Payment status: {status}, failed_reason: '{failed_reason}', failed_code: '{failed_code}'")
+                    
+                    if status == 'COMPLETE':
+                        logger.info(f"POLLING: Payment completed! Updating balance for {phone_number}")
+                        
+                        # Update balance directly through Lightning API (bypassing MeTTa issues)
+                        from lightning import lightning_api
+                        current_balance = lightning_api.get_balance(phone_number)
+                        lightning_api._update_db_balance(phone_number, sats_amount)
+                        new_balance = lightning_api.get_balance(phone_number)
+                        
+                        # Record completed transaction in MeTTa (optional)
+                        try:
+                            timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ")
+                            transaction_atom = f'!(add-atom &self (Transaction "M-Pesa" "{phone_number}" {sats_amount} TopUp "{timestamp}"))'
+                            self.metta.run(transaction_atom)
+                            
+                            # Remove pending transaction
+                            remove_pending = f'!(remove-atom &self (PendingMpesa "{phone_number}" "{invoice_id}" {kes_amount} {sats_amount} $timestamp))'
+                            self.metta.run(remove_pending)
+                        except Exception as metta_error:
+                            logger.warning(f"POLLING: MeTTa operation failed (balance still updated): {metta_error}")
+                        
+                        logger.info(f"POLLING: Balance updated from {current_balance} to {new_balance} sats")
+                        break
+                    
+                    elif status in ['FAILED', 'CANCELLED', 'EXPIRED'] or failed_reason or failed_code:
+                        # Payment failed - stop polling
+                        logger.info(f"POLLING: Payment failed/cancelled (Status: {status}, Reason: '{failed_reason}', Code: '{failed_code}'). Stopping polling.")
+                        
+                        # Remove pending transaction for failed payments
+                        remove_pending = f'!(remove-atom &self (PendingMpesa "{phone_number}" "{invoice_id}" {kes_amount} {sats_amount} $timestamp))'
+                        self.metta.run(remove_pending)
+                        break
+                    
+                    elif status in ['PENDING', 'PROCESSING']:
+                        # Still processing - continue polling
+                        logger.info(f"POLLING: Payment still {status.lower()}. Will check again in {interval} seconds.")
+                        time.sleep(interval)
+                    
+                    else:
+                        # Unknown status - log but CONTINUE polling (don't stop unless max attempts reached)
+                        logger.warning(f"POLLING: Unknown payment status '{status}'. Continuing polling in case status updates...")
+                        time.sleep(interval)
+                
+                except Exception as e:
+                    logger.error(f"POLLING: Error in attempt {attempt + 1}: {str(e)}")
+                    time.sleep(interval)
+            
+            logger.info(f"POLLING: Finished polling for invoice {invoice_id}")
+        
+        # Start polling in background thread
+        polling_thread = threading.Thread(target=poll_payment, daemon=True)
+        polling_thread.start()
+        logger.info(f"POLLING: Started background polling thread for invoice {invoice_id}")
 
 # Initialize handlers instance
 ussd_handlers = USSDHandlers()

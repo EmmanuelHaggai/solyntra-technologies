@@ -7,6 +7,8 @@ import logging
 from typing import Dict, Any, Optional, Tuple
 import base64
 import time
+from database import get_session
+from models import User
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,7 +26,7 @@ class LightningAPI:
     def get_balance(self, user_id: str) -> int:
         """Get user balance in satoshis"""
         if self.api_type == "mock":
-            return self.mock_data["users"].get(user_id, {}).get("balance", 0)
+            return self._get_db_balance(user_id)
         elif self.api_type == "lnbits":
             return self._lnbits_get_balance(user_id)
         elif self.api_type == "lnd":
@@ -77,8 +79,8 @@ class LightningAPI:
                 return False, {"error": "Insufficient balance"}
             
             # Update balances
-            self._update_balance(user_id, -invoice["amount"])
-            self._update_balance(invoice["user_id"], invoice["amount"])
+            self._update_db_balance(user_id, -invoice["amount"])
+            self._update_db_balance(invoice["user_id"], invoice["amount"])
             
             # Mark invoice as paid
             invoice["paid"] = True
@@ -116,18 +118,58 @@ class LightningAPI:
             return self._btcpay_check_invoice(invoice_id)
         return False, {"error": "Unsupported API type"}
     
+    def _get_db_balance(self, user_id: str) -> int:
+        """Get user balance from database"""
+        try:
+            with get_session() as session:
+                user = session.query(User).filter_by(phone_number=user_id).first()
+                if user:
+                    return user.balance_sats
+                return 0
+        except Exception as e:
+            logger.error(f"Database balance error: {e}")
+            return 0
+
+    def _update_db_balance(self, user_id: str, amount_change: int):
+        """Update user balance in database"""
+        try:
+            with get_session() as session:
+                user = session.query(User).filter_by(phone_number=user_id).first()
+                if user:
+                    user.balance_sats += amount_change
+                    if user.balance_sats < 0:
+                        user.balance_sats = 0
+                else:
+                    # Create new user with initial balance
+                    user = User(phone_number=user_id, balance_sats=max(0, amount_change))
+                    session.add(user)
+                session.commit()
+        except Exception as e:
+            logger.error(f"Database balance update error: {e}")
+
     def _update_balance(self, user_id: str, amount_change: int):
-        """Update user balance (mock only)"""
-        if user_id not in self.mock_data["users"]:
-            self.mock_data["users"][user_id] = {"balance": 0}
-        self.mock_data["users"][user_id]["balance"] += amount_change
+        """Update user balance (database-backed)"""
+        self._update_db_balance(user_id, amount_change)
     
     def set_balance(self, user_id: str, amount: int):
-        """Set user balance (mock/testing only)"""
+        """Set user balance (database-backed)"""
         if self.api_type == "mock":
-            if user_id not in self.mock_data["users"]:
-                self.mock_data["users"][user_id] = {}
-            self.mock_data["users"][user_id]["balance"] = amount
+            self._set_db_balance(user_id, amount)
+
+    def _set_db_balance(self, user_id: str, amount: int):
+        """Set user balance in database"""
+        try:
+            with get_session() as session:
+                user = session.query(User).filter_by(phone_number=user_id).first()
+                if user:
+                    user.balance_sats = amount
+                else:
+                    # Create new user with specified balance
+                    user = User(phone_number=user_id, balance_sats=amount)
+                    session.add(user)
+                session.commit()
+        except Exception as e:
+            logger.error(f"Database balance set error: {e}")
     
     # LNbits API methods
     def _lnbits_get_balance(self, user_id: str) -> int:

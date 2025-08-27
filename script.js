@@ -1,47 +1,310 @@
-// Bitcoin Lightning USSD Landing Page JavaScript
+// Theme Management
+class ThemeManager {
+    constructor() {
+        this.theme = localStorage.getItem('theme') || 
+                    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        this.init();
+    }
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize page
-    initializePage();
-    
-    // Add smooth scrolling for navigation links
-    addSmoothScrolling();
-    
-    // Add mobile menu functionality
-    addMobileMenu();
-    
-    // Add scroll effects
-    addScrollEffects();
-    
-    // Add phone mockup animation
-    animatePhoneMockup();
-});
+    init() {
+        this.applyTheme();
+        this.setupToggle();
+        this.setupMediaQuery();
+    }
 
-function initializePage() {
-    // Add loading animation
-    document.body.style.opacity = '0';
-    setTimeout(() => {
-        document.body.style.transition = 'opacity 0.5s ease';
-        document.body.style.opacity = '1';
-    }, 100);
-}
+    applyTheme() {
+        document.documentElement.setAttribute('data-theme', this.theme);
+        localStorage.setItem('theme', this.theme);
+    }
 
-function copyUSSDCode() {
-    const ussdCode = '*384*3036#';
-    
-    // Try to copy to clipboard
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(ussdCode).then(() => {
-            showCopyNotification('USSD code copied to clipboard!');
-        }).catch(() => {
-            fallbackCopyTextToClipboard(ussdCode);
+    toggle() {
+        this.theme = this.theme === 'light' ? 'dark' : 'light';
+        this.applyTheme();
+    }
+
+    setupToggle() {
+        const toggle = document.getElementById('theme-toggle');
+        if (toggle) {
+            toggle.addEventListener('click', () => this.toggle());
+        }
+    }
+
+    setupMediaQuery() {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        mediaQuery.addEventListener('change', (e) => {
+            if (!localStorage.getItem('theme')) {
+                this.theme = e.matches ? 'dark' : 'light';
+                this.applyTheme();
+            }
         });
-    } else {
-        fallbackCopyTextToClipboard(ussdCode);
     }
 }
 
-function fallbackCopyTextToClipboard(text) {
+// Header Scroll Effect
+class HeaderManager {
+    constructor() {
+        this.header = document.getElementById('header');
+        this.init();
+    }
+
+    init() {
+        if (this.header) {
+            window.addEventListener('scroll', () => this.handleScroll());
+        }
+    }
+
+    handleScroll() {
+        const scrolled = window.scrollY > 10;
+        this.header.classList.toggle('scrolled', scrolled);
+    }
+}
+
+// Mobile Menu
+class MobileMenuManager {
+    constructor() {
+        this.toggle = document.getElementById('mobile-menu-toggle');
+        this.menu = document.getElementById('mobile-menu');
+        this.init();
+    }
+
+    init() {
+        if (this.toggle && this.menu) {
+            this.toggle.addEventListener('click', () => this.toggleMenu());
+            this.setupMenuLinks();
+        }
+    }
+
+    toggleMenu() {
+        this.toggle.classList.toggle('active');
+        this.menu.classList.toggle('active');
+    }
+
+    setupMenuLinks() {
+        const links = this.menu.querySelectorAll('a');
+        links.forEach(link => {
+            link.addEventListener('click', () => {
+                this.toggle.classList.remove('active');
+                this.menu.classList.remove('active');
+            });
+        });
+    }
+}
+
+// Phone Animation Manager
+class PhoneAnimationManager {
+    constructor() {
+        this.currentScreen = 0;
+        this.screens = document.querySelectorAll('.screen');
+        this.balance = document.getElementById('balance');
+        this.newBalance = document.getElementById('new-balance');
+        this.menuItems = document.getElementById('menu-items');
+        this.buyBtcOption = document.getElementById('buy-btc-option');
+        this.animatedBalance = 1337;
+        this.init();
+    }
+
+    init() {
+        if (this.screens.length > 0) {
+            this.startAnimation();
+            this.animateBalance();
+        }
+    }
+
+    animateBalance() {
+        let current = 0;
+        const target = this.animatedBalance;
+        const increment = target / 50;
+        
+        const animate = () => {
+            current += increment;
+            if (current < target) {
+                if (this.balance) this.balance.textContent = Math.floor(current).toLocaleString();
+                requestAnimationFrame(animate);
+            } else {
+                if (this.balance) this.balance.textContent = target.toLocaleString();
+            }
+        };
+        
+        animate();
+    }
+
+    showScreen(index) {
+        this.screens.forEach((screen, i) => {
+            screen.classList.toggle('active', i === index);
+        });
+        this.currentScreen = index;
+    }
+
+    async startAnimation() {
+        // Wait 3 seconds, then start the sequence
+        await this.wait(3000);
+        
+        // Simulate scrolling
+        if (this.menuItems) {
+            this.menuItems.style.transform = 'translateY(-10px)';
+            await this.wait(500);
+            this.menuItems.style.transform = 'translateY(0)';
+        }
+        
+        // Highlight Buy BTC option
+        if (this.buyBtcOption) {
+            this.buyBtcOption.style.transform = 'scale(1.05)';
+            this.buyBtcOption.style.boxShadow = '0 0 20px rgba(255, 125, 0, 0.5)';
+        }
+        
+        await this.wait(1500);
+        
+        // Go to Buy BTC screen
+        this.showScreen(1);
+        await this.wait(3000);
+        
+        // Go to Processing screen
+        this.showScreen(2);
+        await this.wait(3000);
+        
+        // Go to Success screen and trigger confetti
+        this.showScreen(3);
+        this.triggerConfetti();
+        
+        // Update balance
+        if (this.newBalance) {
+            this.newBalance.textContent = (this.animatedBalance + 667).toLocaleString();
+        }
+        
+        await this.wait(4000);
+        
+        // Reset to main screen
+        this.showScreen(0);
+        if (this.buyBtcOption) {
+            this.buyBtcOption.style.transform = '';
+            this.buyBtcOption.style.boxShadow = '';
+        }
+        
+        // Restart the animation
+        setTimeout(() => this.startAnimation(), 5000);
+    }
+
+    triggerConfetti() {
+        if (typeof confetti !== 'undefined') {
+            // Get phone position
+            const phone = document.querySelector('.phone-mockup');
+            if (phone) {
+                const rect = phone.getBoundingClientRect();
+                const x = (rect.left + rect.width / 2) / window.innerWidth;
+                const y = (rect.top + rect.height / 2) / window.innerHeight;
+                
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { x, y },
+                    colors: ['#FF7D00', '#6C63FF', '#005F73', '#FFD700', '#10b981']
+                });
+            }
+        }
+    }
+
+    wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+}
+
+// Smooth Scrolling
+class SmoothScrollManager {
+    constructor() {
+        this.init();
+    }
+
+    init() {
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = document.querySelector(anchor.getAttribute('href'));
+                if (target) {
+                    const headerHeight = document.getElementById('header')?.offsetHeight || 0;
+                    const targetPosition = target.offsetTop - headerHeight - 20;
+                    
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    }
+}
+
+// FAQ Manager
+class FAQManager {
+    constructor() {
+        this.init();
+    }
+
+    init() {
+        document.querySelectorAll('.faq-question').forEach(question => {
+            question.addEventListener('click', () => this.toggleFAQ(question));
+        });
+    }
+
+    toggleFAQ(question) {
+        const faqItem = question.closest('.faq-item');
+        const isActive = faqItem.classList.contains('active');
+        
+        // Close all FAQ items
+        document.querySelectorAll('.faq-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Open clicked item if it wasn't active
+        if (!isActive) {
+            faqItem.classList.add('active');
+        }
+    }
+}
+
+// Intersection Observer for Animations
+class AnimationObserver {
+    constructor() {
+        this.init();
+    }
+
+    init() {
+        const options = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        this.observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-in');
+                }
+            });
+        }, options);
+
+        // Observe elements
+        document.querySelectorAll('.feature-card, .step, .stat-card, .demo-card').forEach(el => {
+            this.observer.observe(el);
+        });
+    }
+}
+
+// Copy USSD Code Function
+function copyUSSDCode() {
+    const code = '*384*3036#';
+    const feedback = document.getElementById('copy-feedback');
+    
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(code).then(() => {
+            showCopyFeedback(feedback);
+        }).catch(() => {
+            fallbackCopy(code, feedback);
+        });
+    } else {
+        fallbackCopy(code, feedback);
+    }
+}
+
+function fallbackCopy(text, feedback) {
     const textArea = document.createElement('textarea');
     textArea.value = text;
     textArea.style.position = 'fixed';
@@ -52,390 +315,317 @@ function fallbackCopyTextToClipboard(text) {
     textArea.select();
     
     try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-            showCopyNotification('USSD code copied to clipboard!');
-        } else {
-            showCopyNotification('Failed to copy. Please copy manually: ' + text, 'error');
-        }
+        document.execCommand('copy');
+        showCopyFeedback(feedback);
     } catch (err) {
-        showCopyNotification('Please copy manually: ' + text, 'error');
+        console.error('Failed to copy text: ', err);
     }
     
     document.body.removeChild(textArea);
 }
 
-function showCopyNotification(message, type = 'success') {
-    // Remove existing notification
-    const existing = document.querySelector('.copy-notification');
-    if (existing) {
-        existing.remove();
-    }
-    
-    // Create notification
-    const notification = document.createElement('div');
-    notification.className = 'copy-notification';
-    notification.textContent = message;
-    
-    if (type === 'error') {
-        notification.style.background = '#e53e3e';
-    }
-    
-    document.body.appendChild(notification);
-    
-    // Show notification
-    setTimeout(() => {
-        notification.classList.add('show');
-    }, 10);
-    
-    // Hide notification after 3 seconds
-    setTimeout(() => {
-        notification.classList.remove('show');
+function showCopyFeedback(feedback) {
+    if (feedback) {
+        feedback.classList.add('show');
         setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 300);
-    }, 3000);
+            feedback.classList.remove('show');
+        }, 2000);
+    }
 }
 
-function addSmoothScrolling() {
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                const headerHeight = document.querySelector('.header').offsetHeight;
-                const targetPosition = target.offsetTop - headerHeight - 20;
-                
-                window.scrollTo({
-                    top: targetPosition,
-                    behavior: 'smooth'
+// Video Functions
+function playVideo() {
+    const placeholder = document.getElementById('video-placeholder');
+    const embed = document.getElementById('video-embed');
+    
+    if (placeholder && embed) {
+        // Show the video embed and hide placeholder
+        placeholder.style.display = 'none';
+        embed.style.display = 'block';
+        
+        // Try to play the video
+        const iframe = embed.querySelector('iframe');
+        if (iframe) {
+            // Reload iframe to trigger autoplay
+            const src = iframe.src;
+            iframe.src = '';
+            setTimeout(() => {
+                iframe.src = src;
+            }, 100);
+        }
+    }
+}
+
+function toggleVolume() {
+    const button = document.querySelector('.volume-toggle');
+    const icon = button.querySelector('i');
+    
+    if (icon.classList.contains('fa-volume-up')) {
+        icon.classList.remove('fa-volume-up');
+        icon.classList.add('fa-volume-mute');
+    } else {
+        icon.classList.remove('fa-volume-mute');
+        icon.classList.add('fa-volume-up');
+    }
+}
+
+// Performance Optimization
+class PerformanceManager {
+    constructor() {
+        this.init();
+    }
+
+    init() {
+        // Lazy load images
+        this.setupLazyLoading();
+        
+        // Debounce scroll events
+        this.setupScrollDebounce();
+        
+        // Preload critical resources
+        this.preloadResources();
+    }
+
+    setupLazyLoading() {
+        if ('IntersectionObserver' in window) {
+            const imageObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        if (img.dataset.src) {
+                            img.src = img.dataset.src;
+                            img.removeAttribute('data-src');
+                            imageObserver.unobserve(img);
+                        }
+                    }
                 });
+            });
+
+            document.querySelectorAll('img[data-src]').forEach(img => {
+                imageObserver.observe(img);
+            });
+        }
+    }
+
+    setupScrollDebounce() {
+        let ticking = false;
+        
+        const updateScroll = () => {
+            // Scroll-based animations here
+            ticking = false;
+        };
+        
+        const requestTick = () => {
+            if (!ticking) {
+                requestAnimationFrame(updateScroll);
+                ticking = true;
             }
-        });
-    });
+        };
+        
+        window.addEventListener('scroll', requestTick, { passive: true });
+    }
+
+    preloadResources() {
+        // Preload critical CSS
+        const criticalCSS = document.createElement('link');
+        criticalCSS.rel = 'preload';
+        criticalCSS.as = 'style';
+        criticalCSS.href = 'styles.css';
+        document.head.appendChild(criticalCSS);
+    }
 }
 
-function addMobileMenu() {
-    // Create mobile menu button
-    const nav = document.querySelector('.nav');
-    const mobileMenuBtn = document.createElement('button');
-    mobileMenuBtn.className = 'mobile-menu-btn';
-    mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
-    mobileMenuBtn.style.cssText = `
-        display: none;
-        background: none;
-        border: none;
-        font-size: 1.5rem;
-        color: #4a4a4a;
-        cursor: pointer;
-        @media (max-width: 768px) {
-            display: block;
-        }
-    `;
-    
-    const navLinks = document.querySelector('.nav-links');
-    nav.appendChild(mobileMenuBtn);
-    
-    // Toggle mobile menu
-    mobileMenuBtn.addEventListener('click', () => {
-        navLinks.classList.toggle('mobile-active');
-    });
-    
-    // Add mobile styles
-    const mobileStyles = document.createElement('style');
-    mobileStyles.textContent = `
-        @media (max-width: 768px) {
-            .mobile-menu-btn {
-                display: block !important;
-            }
+// Touch and Mobile Enhancements
+class TouchManager {
+    constructor() {
+        this.init();
+    }
+
+    init() {
+        // Add touch feedback for interactive elements
+        this.setupTouchFeedback();
+        
+        // Handle touch gestures
+        this.setupGestures();
+        
+        // Improve mobile scrolling
+        this.setupMobileScrolling();
+    }
+
+    setupTouchFeedback() {
+        const interactiveElements = document.querySelectorAll(
+            '.btn, .feature-card, .faq-question, .menu-item, .copy-btn'
+        );
+        
+        interactiveElements.forEach(element => {
+            element.addEventListener('touchstart', () => {
+                element.style.transform = 'scale(0.98)';
+            }, { passive: true });
             
-            .nav-links {
-                position: absolute;
-                top: 100%;
-                left: 0;
-                right: 0;
-                background: white;
-                flex-direction: column;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                transform: translateY(-100%);
-                opacity: 0;
-                visibility: hidden;
-                transition: all 0.3s ease;
-                padding: 1rem;
+            element.addEventListener('touchend', () => {
+                setTimeout(() => {
+                    element.style.transform = '';
+                }, 150);
+            }, { passive: true });
+        });
+    }
+
+    setupGestures() {
+        let startY = 0;
+        let startX = 0;
+        
+        document.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+            startX = e.touches[0].clientX;
+        }, { passive: true });
+        
+        document.addEventListener('touchmove', (e) => {
+            // Prevent overscroll on iOS
+            if (e.touches.length > 1) {
+                e.preventDefault();
             }
+        }, { passive: false });
+    }
+
+    setupMobileScrolling() {
+        // Smooth scrolling for mobile
+        document.documentElement.style.scrollBehavior = 'smooth';
+        
+        // Fix iOS scroll momentum
+        document.body.style.webkitOverflowScrolling = 'touch';
+    }
+}
+
+// Accessibility Enhancements
+class AccessibilityManager {
+    constructor() {
+        this.init();
+    }
+
+    init() {
+        this.setupKeyboardNavigation();
+        this.setupFocusManagement();
+        this.setupARIA();
+        this.setupReducedMotion();
+    }
+
+    setupKeyboardNavigation() {
+        // Handle Enter key on clickable elements
+        document.querySelectorAll('[onclick], .faq-question').forEach(element => {
+            element.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    element.click();
+                }
+            });
             
-            .nav-links.mobile-active {
-                transform: translateY(0);
-                opacity: 1;
-                visibility: visible;
+            // Make focusable if not already
+            if (!element.hasAttribute('tabindex')) {
+                element.setAttribute('tabindex', '0');
             }
-        }
-    `;
-    document.head.appendChild(mobileStyles);
-}
+        });
+    }
 
-function addScrollEffects() {
-    const header = document.querySelector('.header');
-    let lastScrollY = window.scrollY;
-    
-    window.addEventListener('scroll', () => {
-        const currentScrollY = window.scrollY;
-        
-        // Header show/hide on scroll
-        if (currentScrollY > lastScrollY && currentScrollY > 100) {
-            header.style.transform = 'translateY(-100%)';
-        } else {
-            header.style.transform = 'translateY(0)';
-        }
-        
-        lastScrollY = currentScrollY;
-        
-        // Add scroll effect to header
-        if (currentScrollY > 50) {
-            header.style.background = 'rgba(255, 255, 255, 0.98)';
-            header.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.1)';
-        } else {
-            header.style.background = 'rgba(255, 255, 255, 0.95)';
-            header.style.boxShadow = 'none';
-        }
-    });
-    
-    header.style.transition = 'all 0.3s ease';
-}
-
-function animatePhoneMockup() {
-    const phoneMockup = document.querySelector('.phone-mockup');
-    if (!phoneMockup) return;
-    
-    // Add floating animation
-    phoneMockup.style.animation = 'float 6s ease-in-out infinite';
-    
-    // Add animation keyframes
-    const floatAnimation = document.createElement('style');
-    floatAnimation.textContent = `
-        @keyframes float {
-            0%, 100% {
-                transform: translateY(0px);
+    setupFocusManagement() {
+        // Visible focus indicators
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                document.body.classList.add('keyboard-navigation');
             }
-            50% {
-                transform: translateY(-20px);
-            }
-        }
-    `;
-    document.head.appendChild(floatAnimation);
-    
-    // Animate USSD content
-    animateUSSDContent();
-}
-
-function animateUSSDContent() {
-    const menuItems = document.querySelectorAll('.menu-item');
-    if (menuItems.length === 0) return;
-    
-    let currentIndex = 3; // Start with "Buy BTC (M-Pesa)" highlighted
-    
-    setInterval(() => {
-        // Remove highlight from all items
-        menuItems.forEach(item => item.classList.remove('highlight'));
+        });
         
-        // Highlight current item
-        if (menuItems[currentIndex]) {
-            menuItems[currentIndex].classList.add('highlight');
+        document.addEventListener('mousedown', () => {
+            document.body.classList.remove('keyboard-navigation');
+        });
+    }
+
+    setupARIA() {
+        // Add ARIA labels where needed
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.setAttribute('aria-label', 'Toggle dark/light theme');
         }
         
-        // Move to next item
-        currentIndex = (currentIndex + 1) % menuItems.length;
+        const mobileToggle = document.getElementById('mobile-menu-toggle');
+        if (mobileToggle) {
+            mobileToggle.setAttribute('aria-label', 'Toggle mobile menu');
+            mobileToggle.setAttribute('aria-expanded', 'false');
+        }
+    }
+
+    setupReducedMotion() {
+        // Respect user's motion preferences
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
         
-        // Skip exit option
-        if (currentIndex === menuItems.length - 1) {
-            currentIndex = 0;
+        if (prefersReducedMotion.matches) {
+            document.documentElement.style.setProperty('--transition-fast', '0.01ms');
+            document.documentElement.style.setProperty('--transition-normal', '0.01ms');
+            document.documentElement.style.setProperty('--transition-slow', '0.01ms');
         }
-    }, 2000);
-}
-
-function showVideoModal() {
-    // Create modal for video
-    const modal = document.createElement('div');
-    modal.className = 'video-modal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.9);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 3000;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    `;
-    
-    const modalContent = document.createElement('div');
-    modalContent.style.cssText = `
-        background: white;
-        border-radius: 16px;
-        padding: 2rem;
-        max-width: 600px;
-        width: 90%;
-        text-align: center;
-        transform: scale(0.9);
-        transition: transform 0.3s ease;
-    `;
-    
-    modalContent.innerHTML = `
-        <h3 style="margin-bottom: 1rem; color: #2d3748;">Demo Video Coming Soon!</h3>
-        <p style="margin-bottom: 2rem; color: #4a5568;">
-            We're preparing an exciting demo video that will show you exactly how to use 
-            Bitcoin Lightning USSD for buying, sending, and managing Bitcoin with simple 
-            phone codes. Stay tuned!
-        </p>
-        <p style="margin-bottom: 2rem; color: #4a5568;">
-            In the meantime, try our live USSD system by dialing <strong>*384*3036#</strong> 
-            or test it on the Africa's Talking simulator.
-        </p>
-        <button onclick="closeVideoModal()" style="
-            background: #f7931a;
-            color: white;
-            border: none;
-            padding: 0.75rem 2rem;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        ">Got it!</button>
-    `;
-    
-    modal.appendChild(modalContent);
-    document.body.appendChild(modal);
-    
-    // Show modal
-    setTimeout(() => {
-        modal.style.opacity = '1';
-        modalContent.style.transform = 'scale(1)';
-    }, 10);
-    
-    // Close on backdrop click
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            closeVideoModal();
-        }
-    });
-    
-    // Store reference for closing
-    window.currentVideoModal = modal;
-}
-
-function closeVideoModal() {
-    const modal = window.currentVideoModal;
-    if (modal) {
-        modal.style.opacity = '0';
-        setTimeout(() => {
-            if (modal.parentNode) {
-                modal.parentNode.removeChild(modal);
-            }
-        }, 300);
     }
 }
 
-// Add intersection observer for animations
-function addIntersectionObserver() {
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-            }
-        });
-    }, {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    });
-    
-    // Observe feature cards and steps
-    document.querySelectorAll('.feature-card, .step, .demo-card').forEach(el => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(20px)';
-        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        observer.observe(el);
-    });
-}
-
-// Initialize intersection observer when page loads
+// Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(addIntersectionObserver, 500);
+    // Core functionality
+    new ThemeManager();
+    new HeaderManager();
+    new MobileMenuManager();
+    new PhoneAnimationManager();
+    new SmoothScrollManager();
+    new FAQManager();
+    
+    // Enhancements
+    new AnimationObserver();
+    new PerformanceManager();
+    new TouchManager();
+    new AccessibilityManager();
+    
+    // Add loading complete class
+    document.body.classList.add('loaded');
 });
 
-// Add click tracking for analytics (placeholder)
-function trackClick(element, action) {
-    console.log(`Clicked: ${element} - ${action}`);
-    // Add your analytics tracking code here
-    // Example: gtag('event', 'click', { 'event_category': element, 'event_label': action });
-}
-
-// Add event listeners for tracking
-document.addEventListener('DOMContentLoaded', () => {
-    // Track USSD code copy
-    document.querySelector('.copy-btn')?.addEventListener('click', () => {
-        trackClick('ussd-code', 'copy');
-    });
-    
-    // Track simulator link clicks
-    document.querySelectorAll('a[href*="simulator"]').forEach(link => {
-        link.addEventListener('click', () => {
-            trackClick('simulator-link', 'click');
-        });
-    });
-    
-    // Track video modal
-    document.querySelector('button[onclick="showVideoModal()"]')?.addEventListener('click', () => {
-        trackClick('video-modal', 'open');
-    });
-});
-
-// Add keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-    // Escape to close modal
-    if (e.key === 'Escape' && window.currentVideoModal) {
-        closeVideoModal();
-    }
-    
-    // Ctrl/Cmd + K to copy USSD code
-    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        copyUSSDCode();
+// Handle page visibility changes
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        // Pause animations when page is hidden
+        document.body.classList.add('paused');
+    } else {
+        // Resume animations when page is visible
+        document.body.classList.remove('paused');
     }
 });
 
-// Performance optimization: Lazy load images
-function lazyLoadImages() {
-    const images = document.querySelectorAll('img[data-src]');
-    const imageObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const img = entry.target;
-                img.src = img.dataset.src;
-                img.classList.remove('lazy');
-                imageObserver.unobserve(img);
-            }
-        });
-    });
-    
-    images.forEach(img => imageObserver.observe(img));
-}
+// Handle resize events
+let resizeTimeout;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+        // Recalculate layouts after resize
+        window.dispatchEvent(new Event('resize-complete'));
+    }, 250);
+});
 
-// Initialize lazy loading
-document.addEventListener('DOMContentLoaded', lazyLoadImages);
-
-// Add service worker for offline functionality (if needed)
+// Service Worker registration (for PWA capabilities)
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // Uncomment to enable service worker
-        // navigator.serviceWorker.register('/sw.js')
-        //     .then(registration => console.log('SW registered'))
-        //     .catch(error => console.log('SW registration failed'));
+        navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+                console.log('SW registered: ', registration);
+            })
+            .catch(registrationError => {
+                console.log('SW registration failed: ', registrationError);
+            });
     });
 }
+
+// Error handling
+window.addEventListener('error', (e) => {
+    console.error('Global error:', e.error);
+    // Could send to analytics service
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+    console.error('Unhandled promise rejection:', e.reason);
+    // Could send to analytics service
+});

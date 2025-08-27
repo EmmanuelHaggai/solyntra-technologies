@@ -5,16 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bitcoin Lightning USSD | btc.emmanuelhaggai.com</title>
     <meta name="description" content="Send and receive Bitcoin via simple USSD codes. No smartphone needed - just dial *384*3036# from any mobile phone.">
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Theme Toggle -->
+    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
+        <i class="fas fa-sun sun-icon"></i>
+        <i class="fas fa-moon moon-icon"></i>
+    </button>
+
     <!-- Header -->
-    <header class="header">
+    <header class="header" id="header">
         <nav class="nav">
             <div class="nav-brand">
-                <i class="fab fa-bitcoin"></i>
+                <div class="brand-icon">
+                    <i class="fab fa-bitcoin"></i>
+                    <div class="pulse-dot"></div>
+                </div>
                 <span>Bitcoin USSD</span>
             </div>
             <div class="nav-links">
@@ -22,23 +33,59 @@
                 <a href="#how-it-works">How it Works</a>
                 <a href="#demo">Demo</a>
                 <a href="#video">Video</a>
+                <a href="#faq">FAQ</a>
             </div>
+            <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
         </nav>
+        <div class="mobile-menu" id="mobile-menu">
+            <a href="#features">Features</a>
+            <a href="#how-it-works">How it Works</a>
+            <a href="#demo">Demo</a>
+            <a href="#video">Video</a>
+            <a href="#faq">FAQ</a>
+        </div>
     </header>
 
+    <!-- Animated Background -->
+    <div class="animated-background">
+        <div class="floating-icon" style="left: 10%; top: 20%; animation-delay: 0s;">
+            <i class="fab fa-bitcoin"></i>
+        </div>
+        <div class="floating-icon" style="left: 80%; top: 30%; animation-delay: 1s;">
+            <i class="fas fa-bolt"></i>
+        </div>
+        <div class="floating-icon" style="left: 20%; top: 70%; animation-delay: 2s;">
+            <i class="fas fa-shield-alt"></i>
+        </div>
+        <div class="floating-icon" style="left: 90%; top: 60%; animation-delay: 3s;">
+            <i class="fas fa-globe-africa"></i>
+        </div>
+        <div class="floating-orb orb-1"></div>
+        <div class="floating-orb orb-2"></div>
+        <div class="floating-orb orb-3"></div>
+        <div class="floating-orb orb-4"></div>
+    </div>
+
     <!-- Hero Section -->
-    <section class="hero">
+    <section class="hero" style="padding-top: 120px;">
         <div class="hero-content">
             <div class="hero-text">
-                <h1>Bitcoin for Everyone</h1>
-                <p>Send and receive Bitcoin using simple USSD codes. No smartphone or internet required - just dial from any mobile phone.</p>
-                <div class="ussd-code">
+                <h1>Bitcoin for <span class="gradient-text">Everyone</span></h1>
+                <p>Send and receive Bitcoin across Africa using simple USSD codes with AI-powered assistance. No smartphone or internet required - just dial from any mobile phone and get intelligent help from our MeTTa reasoning engine.</p>
+                
+                <div class="ussd-code-display">
                     <span class="code-label">USSD Code:</span>
                     <span class="code-value">*384*3036#</span>
                     <button class="copy-btn" onclick="copyUSSDCode()">
                         <i class="fas fa-copy"></i>
                     </button>
+                    <div class="copy-feedback" id="copy-feedback">Copied!</div>
                 </div>
+
                 <div class="hero-buttons">
                     <a href="https://developers.africastalking.com/simulator" target="_blank" class="btn btn-primary">
                         <i class="fas fa-mobile-alt"></i>
@@ -50,80 +97,152 @@
                     </a>
                 </div>
             </div>
+
             <div class="hero-visual">
                 <div class="phone-mockup">
+                    <div class="phone-glow"></div>
                     <div class="phone-screen">
-                        <div class="ussd-display">
-                            <div class="ussd-header">USSD Session</div>
-                            <div class="ussd-content">
-                                <div class="message">Welcome to Bitcoin Lightning!</div>
-                                <div class="balance">₿ Balance: 0 sats</div>
-                                <div class="menu">
-                                    <div class="menu-title">Bitcoin Lightning</div>
+                        <div class="ussd-display" id="ussd-display">
+                            <!-- Screen 1: Main Menu -->
+                            <div class="screen active" data-screen="0">
+                                <div class="ussd-header">USSD Session Active</div>
+                                <div class="welcome-message">Welcome to Bitcoin Lightning!</div>
+                                <div class="balance-display">₿ Balance: <span id="balance">1,337</span> sats</div>
+                                <div class="menu-title">Bitcoin Lightning</div>
+                                <div class="menu-items" id="menu-items">
                                     <div class="menu-item">1. Send BTC</div>
                                     <div class="menu-item">2. Receive BTC</div>
                                     <div class="menu-item">3. Send Invoice</div>
-                                    <div class="menu-item highlight">4. Buy BTC (M-Pesa)</div>
+                                    <div class="menu-item highlight" id="buy-btc-option">4. Buy BTC (M-Pesa)</div>
                                     <div class="menu-item">5. Top Up M-Pesa</div>
                                     <div class="menu-item">6. Withdraw M-Pesa</div>
                                     <div class="menu-item">7. Buy Airtime</div>
+                                    <div class="menu-item">8. AI Assistant</div>
                                     <div class="menu-item">0. Exit</div>
                                 </div>
-                                <div class="prompt">💬 Try: 'rates?', 'help', or select option</div>
+                                <div class="prompt">🤖 Try: 'rates?', 'help', 'explain bitcoin', or select option</div>
+                            </div>
+
+                            <!-- Screen 2: Buy BTC -->
+                            <div class="screen" data-screen="1">
+                                <div class="ussd-header">Buy Bitcoin with M-Pesa</div>
+                                <div class="input-section">
+                                    <div class="input-label">Enter Amount (KES):</div>
+                                    <div class="input-display">100</div>
+                                    <div class="conversion">≈ 667 sats</div>
+                                </div>
+                                <div class="steps-preview">
+                                    <div class="step active">1. Confirm Amount</div>
+                                    <div class="step">2. M-Pesa STK Push</div>
+                                    <div class="step">3. Receive Bitcoin</div>
+                                </div>
+                            </div>
+
+                            <!-- Screen 3: Processing -->
+                            <div class="screen" data-screen="2">
+                                <div class="ussd-header">Processing Payment...</div>
+                                <div class="processing-animation">
+                                    <div class="spinner"></div>
+                                </div>
+                                <div class="processing-message">M-Pesa STK Push sent</div>
+                                <div class="processing-sub">Check your phone...</div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill"></div>
+                                </div>
+                                <div class="processing-status">Processing transaction...</div>
+                            </div>
+
+                            <!-- Screen 4: Success -->
+                            <div class="screen" data-screen="3">
+                                <div class="ussd-header success">Transaction Successful! 🎉</div>
+                                <div class="success-icon">✓</div>
+                                <div class="success-message">Payment Received!</div>
+                                <div class="transaction-details">100 KES → 667 sats</div>
+                                <div class="new-balance">New Balance: <span id="new-balance">2,004</span> sats</div>
+                                <div class="celebration">🎊 Bitcoin received instantly! 🎊</div>
                             </div>
                         </div>
                     </div>
+                    <div class="floating-element floating-zap">
+                        <i class="fas fa-bolt"></i>
+                    </div>
                 </div>
             </div>
+        </div>
+        <div class="hero-wave">
+            <svg viewBox="0 0 1440 120" class="wave-svg">
+                <path d="M0,64L48,69.3C96,75,192,85,288,80C384,75,480,53,576,48C672,43,768,53,864,64C960,75,1056,85,1152,80C1248,75,1344,53,1392,42.7L1440,32L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z"></path>
+            </svg>
         </div>
     </section>
 
     <!-- Features Section -->
     <section id="features" class="features">
         <div class="container">
-            <h2>Why Choose Bitcoin USSD?</h2>
+            <div class="section-header">
+                <h2>Why Choose <span class="gradient-text">Bitcoin USSD?</span></h2>
+                <div class="section-divider"></div>
+            </div>
             <div class="features-grid">
                 <div class="feature-card">
+                    <div class="feature-bg-image" style="background-image: url('https://images.pexels.com/photos/730547/pexels-photo-730547.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1');"></div>
                     <div class="feature-icon">
                         <i class="fas fa-mobile-alt"></i>
+                        <div class="icon-pulse"></div>
                     </div>
                     <h3>Any Phone Works</h3>
                     <p>Works on any mobile phone - smartphones, feature phones, or basic phones. No internet or apps required.</p>
+                    <div class="feature-line"></div>
                 </div>
                 <div class="feature-card">
+                    <div class="feature-bg-image" style="background-image: url('https://images.pexels.com/photos/844124/pexels-photo-844124.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1');"></div>
                     <div class="feature-icon">
                         <i class="fas fa-bolt"></i>
+                        <div class="icon-pulse"></div>
                     </div>
                     <h3>Lightning Fast</h3>
-                    <p>Powered by Bitcoin Lightning Network for instant, low-cost transactions anywhere in Kenya.</p>
+                    <p>Powered by Bitcoin Lightning Network for instant, low-cost transactions anywhere in Africa.</p>
+                    <div class="feature-line"></div>
                 </div>
                 <div class="feature-card">
+                    <div class="feature-bg-image" style="background-image: url('https://images.pexels.com/photos/315788/pexels-photo-315788.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1');"></div>
                     <div class="feature-icon">
                         <i class="fas fa-exchange-alt"></i>
+                        <div class="icon-pulse"></div>
                     </div>
                     <h3>M-Pesa Integration</h3>
-                    <p>Buy Bitcoin with M-Pesa, withdraw to M-Pesa, or buy airtime directly with your Bitcoin balance.</p>
+                    <p>Buy Bitcoin with mobile money, withdraw to mobile money, or buy airtime directly with your Bitcoin balance across Africa.</p>
+                    <div class="feature-line"></div>
                 </div>
                 <div class="feature-card">
+                    <div class="feature-bg-image" style="background-image: url('https://images.pexels.com/photos/1181244/pexels-photo-1181244.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1');"></div>
                     <div class="feature-icon">
                         <i class="fas fa-shield-alt"></i>
+                        <div class="icon-pulse"></div>
                     </div>
                     <h3>Secure & Private</h3>
                     <p>Your Bitcoin is secured by MeTTa reasoning engine and Lightning Network cryptography.</p>
+                    <div class="feature-line"></div>
                 </div>
                 <div class="feature-card">
+                    <div class="feature-bg-image" style="background-image: url('https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1');"></div>
+                    <div class="feature-icon">
+                        <i class="fas fa-robot"></i>
+                        <div class="icon-pulse"></div>
+                    </div>
+                    <h3>AI-Powered Assistant</h3>
+                    <p>MeTTa reasoning engine provides intelligent financial guidance, explains Bitcoin concepts, and helps with transactions in natural language.</p>
+                    <div class="feature-line"></div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-bg-image" style="background-image: url('https://images.pexels.com/photos/1181263/pexels-photo-1181263.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1');"></div>
                     <div class="feature-icon">
                         <i class="fas fa-globe-africa"></i>
+                        <div class="icon-pulse"></div>
                     </div>
                     <h3>Multi-Language</h3>
-                    <p>Available in English and Swahili. Making Bitcoin accessible to all Kenyans.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-coins"></i>
-                    </div>
-                    <h3>Low Minimum</h3>
-                    <p>Start with as little as 10 KES (66 sats). Perfect for learning and micro-transactions.</p>
+                    <p>Available in multiple African languages with AI translation. Making Bitcoin accessible to all Africans with smart language support.</p>
+                    <div class="feature-line"></div>
                 </div>
             </div>
         </div>
@@ -132,31 +251,57 @@
     <!-- How it Works -->
     <section id="how-it-works" class="how-it-works">
         <div class="container">
-            <h2>How it Works</h2>
-            <div class="steps">
+            <div class="section-header">
+                <h2>How it <span class="gradient-text">Works</span></h2>
+                <p>Get started with Bitcoin in just a few simple steps</p>
+            </div>
+            <div class="steps-container">
                 <div class="step">
-                    <div class="step-number">1</div>
+                    <div class="step-visual">
+                        <div class="step-number">1</div>
+                        <div class="step-icon">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                    </div>
                     <div class="step-content">
                         <h3>Dial USSD Code</h3>
                         <p>From any mobile phone, dial <strong>*384*3036#</strong> to access the Bitcoin Lightning menu.</p>
                     </div>
+                    <div class="step-line"></div>
                 </div>
                 <div class="step">
-                    <div class="step-number">2</div>
+                    <div class="step-visual">
+                        <div class="step-number">2</div>
+                        <div class="step-icon">
+                            <i class="fas fa-hand-pointer"></i>
+                        </div>
+                    </div>
                     <div class="step-content">
                         <h3>Choose Your Action</h3>
                         <p>Select from options like Buy BTC with M-Pesa, Send Bitcoin, Receive payments, or buy airtime.</p>
                     </div>
+                    <div class="step-line"></div>
                 </div>
                 <div class="step">
-                    <div class="step-number">3</div>
+                    <div class="step-visual">
+                        <div class="step-number">3</div>
+                        <div class="step-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
                     <div class="step-content">
                         <h3>Complete Transaction</h3>
                         <p>Follow the prompts to enter amounts and confirm. M-Pesa payments use STK Push for security.</p>
                     </div>
+                    <div class="step-line"></div>
                 </div>
                 <div class="step">
-                    <div class="step-number">4</div>
+                    <div class="step-visual">
+                        <div class="step-number">4</div>
+                        <div class="step-icon">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                    </div>
                     <div class="step-content">
                         <h3>Instant Results</h3>
                         <p>Transactions complete instantly on Lightning Network. Check your balance anytime via USSD.</p>
@@ -169,36 +314,55 @@
     <!-- Demo Section -->
     <section id="demo" class="demo">
         <div class="container">
-            <h2>Try the Demo</h2>
-            <p>Test our Bitcoin USSD application using Africa's Talking simulator:</p>
+            <div class="section-header">
+                <h2>Try the <span class="gradient-text">Demo</span></h2>
+                <p>Test our Bitcoin USSD application using Africa's Talking simulator</p>
+            </div>
             <div class="demo-card">
-                <div class="demo-info">
-                    <h3>USSD Simulator</h3>
-                    <p>Experience the full Bitcoin Lightning USSD interface in a safe testing environment.</p>
-                    <div class="demo-details">
-                        <div class="detail">
-                            <span class="label">USSD Code:</span>
-                            <span class="value">*384*3036#</span>
-                        </div>
-                        <div class="detail">
-                            <span class="label">Test Phone:</span>
-                            <span class="value">+254715586044</span>
-                        </div>
-                        <div class="detail">
-                            <span class="label">Min Amount:</span>
-                            <span class="value">10 KES (66 sats)</span>
-                        </div>
-                        <div class="detail">
-                            <span class="label">Exchange Rate:</span>
-                            <span class="value">150 KES = 1,000 sats</span>
+                <div class="demo-bg-image" style="background-image: url('https://images.pexels.com/photos/1181244/pexels-photo-1181244.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&dpr=1');"></div>
+                <div class="demo-content">
+                    <div class="demo-info">
+                        <h3><i class="fas fa-mobile-alt"></i> USSD Simulator</h3>
+                        <p>Experience the full Bitcoin Lightning USSD interface in a safe testing environment.</p>
+                        <div class="demo-details">
+                            <div class="detail-item">
+                                <span class="detail-icon">📱</span>
+                                <span class="detail-label">USSD Code:</span>
+                                <span class="detail-value">*384*3036#</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-icon">☎️</span>
+                                <span class="detail-label">Test Phone:</span>
+                                <span class="detail-value">+254715586044</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-icon">💰</span>
+                                <span class="detail-label">Min Purchase:</span>
+                                <span class="detail-value">10 shs</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-icon">📊</span>
+                                <span class="detail-label">Exchange Rate:</span>
+                                <span class="detail-value">Real-time rates</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-icon">🤖</span>
+                                <span class="detail-label">AI Assistant:</span>
+                                <span class="detail-value">MeTTa powered</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="demo-action">
-                    <a href="https://developers.africastalking.com/simulator" target="_blank" class="btn btn-large">
-                        <i class="fas fa-external-link-alt"></i>
-                        Open USSD Simulator
-                    </a>
+                    <div class="demo-action">
+                        <a href="https://developers.africastalking.com/simulator" target="_blank" class="demo-icon">
+                            <i class="fas fa-external-link-alt"></i>
+                        </a>
+                        <h4>Ready to Test?</h4>
+                        <p>Open the simulator and experience Bitcoin transactions through USSD</p>
+                        <a href="https://developers.africastalking.com/simulator" target="_blank" class="btn btn-large">
+                            <i class="fas fa-external-link-alt"></i>
+                            Ready to Test? Recording
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -207,32 +371,95 @@
     <!-- Video Section -->
     <section id="video" class="video-section">
         <div class="container">
-            <h2>Watch Demo Video</h2>
-            <p>See Bitcoin Lightning USSD in action</p>
+            <div class="section-header">
+                <h2>Watch <span class="gradient-text">Demo Video</span></h2>
+                <p>See Bitcoin Lightning USSD in action</p>
+            </div>
             <div class="video-container">
-                <div class="video-placeholder">
-                    <div class="video-content">
-                        <i class="fas fa-play-circle"></i>
-                        <h3>Demo Video Coming Soon</h3>
-                        <p>Watch how easy it is to buy, send, and manage Bitcoin using simple USSD codes</p>
-                        <button class="btn btn-primary" onclick="showVideoModal()">
-                            <i class="fas fa-play"></i>
-                            Watch Demo
-                        </button>
+                <iframe width="100%" height="500" src="https://www.youtube.com/embed/r0weTNSGCuc?si=Ve7GKIv7Ix8prPIWhttps://youtu.be/r0weTNSGCuc?si=Ve7GKIv7Ix8prPIW" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="faq">
+        <div class="container">
+            <div class="section-header">
+                <h2>Frequently Asked <span class="gradient-text">Questions</span></h2>
+                <p>Everything you need to know about Bitcoin Lightning USSD</p>
+            </div>
+            <div class="faq-container">
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>What is Bitcoin Lightning USSD?</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Bitcoin Lightning USSD is a revolutionary service that allows you to send, receive, and manage Bitcoin using simple USSD codes (*384*3036#) from any mobile phone. No smartphone or internet connection required - it works on basic feature phones too. Our MeTTa AI assistant provides intelligent guidance throughout your Bitcoin journey.</p>
                     </div>
                 </div>
-                <!-- Video embed will go here -->
-                <div id="video-embed" class="video-embed" style="display: none;">
-                    <!-- Replace with actual video embed when ready -->
-                    <iframe 
-                        width="100%" 
-                        height="400" 
-                        src="" 
-                        title="Bitcoin Lightning USSD Demo" 
-                        frameborder="0" 
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                        allowfullscreen>
-                    </iframe>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>How do I get started?</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Simply dial *384*3036# from any mobile phone to access the Bitcoin Lightning menu. You can start by buying Bitcoin using your local mobile money service like M-Pesa, MTN Mobile Money, or Airtel Money. The system will guide you through each step with clear instructions and AI assistance.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Is it safe and secure?</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Absolutely! Your Bitcoin is secured by multiple layers: Lightning Network cryptography, our MeTTa reasoning engine, and secure mobile money protocols. Your private keys are protected and never exposed. All transactions are encrypted and verified through the blockchain network.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>What's the minimum amount I can buy?</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>You can start with as little as 10 shs (shillings). This low minimum makes Bitcoin accessible to everyone across Africa and perfect for learning how cryptocurrency works without any significant financial risk.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>How fast are transactions?</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Lightning fast! Transactions complete in under 3 seconds thanks to the Bitcoin Lightning Network. Once you confirm a payment, your Bitcoin balance is updated immediately, and you can send or receive payments right away. This is much faster than traditional banking or even regular Bitcoin transactions.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Can I withdraw my Bitcoin to M-Pesa?</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Yes! You can easily convert your Bitcoin back to your local currency and withdraw to M-Pesa, MTN Mobile Money, Airtel Money, Orange Money, or other supported mobile money services. You can also use your Bitcoin balance to buy airtime, pay bills, or top up mobile money directly through the USSD menu.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>What languages are supported?</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>The service supports major African languages including English, Swahili, French, Arabic, Hausa, Yoruba, Amharic, Portuguese, and many others. Our MeTTa AI can understand and respond in your preferred language. You can switch between languages in the USSD menu settings or just start typing in your language.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <h3>Do I need internet or a smartphone?</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Not at all! That's the revolutionary aspect of USSD technology. It works on any mobile phone - smartphones, feature phones, or even the most basic Nokia phones from 15 years ago. No internet connection, mobile apps, or data plan required. Just dial *384*3036# and start using Bitcoin immediately.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -240,10 +467,25 @@
 
     <!-- Footer -->
     <footer class="footer">
+        <div class="footer-bg">
+            <div class="footer-pattern"></div>
+            <div class="footer-floating-icons">
+                <i class="fab fa-bitcoin"></i>
+                <i class="fas fa-mobile-alt"></i>
+                <i class="fas fa-bolt"></i>
+                <i class="fas fa-shield-alt"></i>
+            </div>
+        </div>
         <div class="container">
             <div class="footer-content">
                 <div class="footer-section">
-                    <h4>Bitcoin Lightning USSD</h4>
+                    <div class="footer-brand">
+                        <div class="brand-icon">
+                            <i class="fab fa-bitcoin"></i>
+                            <div class="pulse-dot"></div>
+                        </div>
+                        <h4>Bitcoin Lightning USSD</h4>
+                    </div>
                     <p>Making Bitcoin accessible to everyone in Africa through simple USSD technology.</p>
                     <div class="footer-links">
                         <a href="#" class="footer-link">Privacy Policy</a>
@@ -255,27 +497,46 @@
                     <h4>Quick Access</h4>
                     <div class="quick-access">
                         <div class="access-item">
-                            <span class="label">USSD Code:</span>
-                            <span class="value">*384*3036#</span>
+                            <span class="access-icon">📱</span>
+                            <span class="access-label">USSD Code:</span>
+                            <span class="access-value">*384*3036#</span>
                         </div>
                         <div class="access-item">
-                            <span class="label">Simulator:</span>
-                            <a href="https://developers.africastalking.com/simulator" target="_blank" class="value">Test Here</a>
+                            <span class="access-icon">🔗</span>
+                            <span class="access-label">Simulator:</span>
+                            <a href="https://developers.africastalking.com/simulator" target="_blank" class="access-value">Test Here</a>
                         </div>
                         <div class="access-item">
-                            <span class="label">Min Purchase:</span>
-                            <span class="value">10 KES</span>
+                            <span class="access-icon">💰</span>
+                            <span class="access-label">Coverage:</span>
+                            <span class="access-value">All Africa</span>
                         </div>
                     </div>
                 </div>
                 <div class="footer-section">
                     <h4>Technology</h4>
-                    <ul class="tech-list">
-                        <li><i class="fab fa-bitcoin"></i> Bitcoin Lightning Network</li>
-                        <li><i class="fas fa-mobile-alt"></i> USSD Technology</li>
-                        <li><i class="fas fa-brain"></i> MeTTa Reasoning Engine</li>
-                        <li><i class="fas fa-shield-alt"></i> Secure M-Pesa Integration</li>
-                    </ul>
+                    <div class="tech-list">
+                        <div class="tech-item">
+                            <i class="fab fa-bitcoin"></i>
+                            <span>Bitcoin Lightning Network</span>
+                        </div>
+                        <div class="tech-item">
+                            <i class="fas fa-mobile-alt"></i>
+                            <span>USSD Technology</span>
+                        </div>
+                        <div class="tech-item">
+                            <i class="fas fa-brain"></i>
+                            <span>MeTTa AI Assistant</span>
+                        </div>
+                        <div class="tech-item">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Secure Mobile Money Integration</span>
+                        </div>
+                        <div class="tech-item">
+                            <i class="fas fa-robot"></i>
+                            <span>Intelligent USSD Interface</span>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="footer-bottom">
@@ -284,6 +545,7 @@
         </div>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

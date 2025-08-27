@@ -255,13 +255,16 @@ class USSDNaturalLanguageProcessor:
             - "one" or "1" → show_menu or send_bitcoin
             - "what's my balance" → check_balance  
             - "send 5000 to Bob" → send_bitcoin
-            - "topup 500" → topup_mpesa
+            - "topup 500" or "buy btc 500 kes" → topup_mpesa (buying Bitcoin with M-Pesa)
             - "withdraw 200 shillings" → withdraw_mpesa
             - "generate invoice 3000" → generate_invoice
             - "buy airtime 100" → buy_airtime
             - "airtime for 50 KES" → buy_airtime
             - "help" → help
             - "history" → transaction_history
+            
+            IMPORTANT: When users say "buy btc with mpesa", "buy bitcoin", or "topup" - they want to add money TO their wallet.
+            Balance doesn't matter for topup operations - users can topup even with 0 balance.
             
             Convert names to phone numbers:
             - Alice: +254712345678
@@ -382,11 +385,15 @@ class AIEnhancedUSSDHandler:
         self.original_handler = original_handler
         self.ai_processor = USSDNaturalLanguageProcessor()
     
-    def should_use_ai(self, user_input: str) -> bool:
+    def should_use_ai(self, user_input: str, session_id: str = None) -> bool:
         """Determine if input should be processed with AI"""
         # Use AI for natural language inputs
         if not user_input or user_input.strip() == "":
             return False
+        
+        # If there's an active AI session context, always use AI (even for simple inputs like "1")
+        if session_id and session_id in self.ai_processor.session_context:
+            return True
             
         # Skip AI for simple menu navigation (single digits)
         if user_input.strip() in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
@@ -401,17 +408,21 @@ class AIEnhancedUSSDHandler:
             # Get current balance for context
             current_balance = self.original_handler.get_user_balance(phone_number)
             
+            # Check if this is a follow-up response to a previous AI request
+            session_context = self.ai_processor.get_session_context(session_id)
+            if session_context and session_context.get('awaiting'):
+                # Extract just the latest input part for context-based responses
+                input_parts = user_input.split('*')
+                latest_input = input_parts[-1] if input_parts else user_input
+                logger.info(f"Processing context-based follow-up: '{latest_input}' in context: {session_context}")
+                return self._handle_context_based_response(session_id, phone_number, latest_input, session_context)
+            
             # Process with AI including session context
             action_type, action_params = self.ai_processor.process_natural_language(
                 user_input, phone_number, current_balance, session_id
             )
             
             logger.info(f"AI determined action: {action_type} with params: {action_params}")
-            
-            # Check if this is a follow-up response to a previous request
-            session_context = self.ai_processor.get_session_context(session_id)
-            if session_context and session_context.get('awaiting'):
-                return self._handle_context_based_response(session_id, phone_number, user_input, session_context)
             
             # Execute the determined action
             if action_type == "send_bitcoin":
@@ -550,31 +561,35 @@ class AIEnhancedUSSDHandler:
                         
                         sats_equivalent = int(kes_amount * (1000 / 150))
                         
-                        # Update context to await M-Pesa code
+                        # Update context to await confirmation
                         self.ai_processor.set_session_context(session_id, {
                             'operation': 'topup_mpesa',
-                            'awaiting': 'mpesa_code',
+                            'awaiting': 'confirmation',
                             'data': {'kes_amount': kes_amount, 'sats_equivalent': sats_equivalent}
                         })
                         
-                        return f"CON Top up {kes_amount} KES ({sats_equivalent:,} sats)?\n\nEnter M-Pesa transaction code to confirm:"
+                        return f"CON Top up {kes_amount} KES ({sats_equivalent:,} sats)?\n\n1. Yes, send M-Pesa request\n2. Cancel"
                     except ValueError:
                         return "CON Invalid amount. Enter amount in KES:"
                 
-                elif awaiting == 'mpesa_code':
-                    # User provided M-Pesa code
-                    mpesa_code = user_input.strip()
-                    if len(mpesa_code) < 8:
-                        return "CON Invalid M-Pesa code.\nEnter M-Pesa transaction code:"
-                    
-                    kes_amount = data.get('kes_amount')
-                    # Execute top-up
-                    success, message, _ = self.original_handler.topup_via_mpesa(phone_number, kes_amount, mpesa_code)
-                    
-                    # Clear context
-                    self.ai_processor.clear_session_context(session_id)
-                    
-                    return f"END {message}"
+                elif awaiting == 'confirmation':
+                    # User confirmed the top-up amount
+                    if user_input.strip().lower() in ['1', 'yes', 'y', 'confirm']:
+                        kes_amount = data.get('kes_amount')
+                        # Execute STK push directly (no code needed)
+                        success, message, transaction_data = self.original_handler.topup_via_mpesa(phone_number, kes_amount)
+                        
+                        # Clear context
+                        self.ai_processor.clear_session_context(session_id)
+                        
+                        return f"END {message}"
+                    elif user_input.strip().lower() in ['2', 'no', 'n', 'cancel']:
+                        self.ai_processor.clear_session_context(session_id)
+                        return "END M-Pesa top-up cancelled."
+                    else:
+                        kes_amount = data.get('kes_amount')
+                        sats_equivalent = data.get('sats_equivalent')
+                        return f"CON Top up {kes_amount} KES ({sats_equivalent:,} sats)?\n\n1. Yes, send M-Pesa request\n2. Cancel"
             
             elif operation == 'withdraw_mpesa':
                 if awaiting == 'amount':
@@ -705,9 +720,9 @@ class AIEnhancedUSSDHandler:
             else:
                 amount_sats = int(amount)
             
-            # Validate amount
-            if amount_sats < 1000:
-                return "CON Minimum send amount is 1000 sats (≈1 KES)\nEnter amount in sats:"
+            # Validate amount (Lightning Network can handle small amounts)
+            if amount_sats < 10:
+                return "CON Minimum send amount is 10 sats (≈0.015 KES)\nEnter amount in sats:"
             
             if amount_sats > 1000000:
                 return "CON Maximum send amount is 1,000,000 sats (≈6,667 KES)\nEnter amount in sats:"
@@ -770,14 +785,14 @@ class AIEnhancedUSSDHandler:
                 
                 sats_equivalent = int(kes_amount * (1000 / 150))
                 
-                # Set context for M-Pesa code collection
+                # Set context for confirmation
                 self.ai_processor.set_session_context(session_id, {
                     'operation': 'topup_mpesa',
-                    'awaiting': 'mpesa_code',
+                    'awaiting': 'confirmation',
                     'data': {'kes_amount': kes_amount, 'sats_equivalent': sats_equivalent}
                 })
                 
-                return f"CON Top up {kes_amount} KES ({sats_equivalent:,} sats)?\n\nEnter M-Pesa transaction code to confirm:"
+                return f"CON Top up {kes_amount} KES ({sats_equivalent:,} sats)?\n\n1. Yes, send M-Pesa request\n2. Cancel"
             else:
                 # Ask for amount first
                 self.ai_processor.set_session_context(session_id, {
