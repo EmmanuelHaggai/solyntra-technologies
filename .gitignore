@@ -1,0 +1,71 @@
+# Environment variables - NEVER commit these
+.env
+.env.local
+.env.production
+.env.staging
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Lightning Network sensitive data
+*.macaroon
+lnd.conf
+*.cert
+*.key
+
+# API Keys and secrets (extra safety)
+*secret*
+*key*.txt
+*token*.txt
+config_prod.py
+
+# Test files
+*test*
+*Test*
+*TEST*
+test_*
+*_test*
+tests/
+test/
+*.test.*
+
+# Fix files
+*fix*
+*Fix*
+*FIX*
+fix_*
+*_fix*
+
+# Hidden files and directories (starting with .)
+.*
+!.gitignore
+!.gitkeep
