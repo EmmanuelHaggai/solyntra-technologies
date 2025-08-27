@@ -461,7 +461,7 @@ For issues with:
 
 ## 📺 Demo Video
 
-[Watch the system in action](https://www.youtube.com/watch?v=r0weTNSGCuc) - Complete USSD Bitcoin Lightning walkthrough
+https://www.youtube.com/watch?v=r0weTNSGCuc
 
 ---
 
