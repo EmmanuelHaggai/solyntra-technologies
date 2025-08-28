@@ -2,6 +2,8 @@
 
 A USSD-based Bitcoin Lightning payment system that integrates Africa's Talking USSD API, Python Flask, MeTTa language for symbolic reasoning, and Bitcoin Lightning Network.
 
+[![MeTTa AI USSD: AGI-Powered Financial Intelligence with Bitcoin Access](https://img.youtube.com/vi/r0weTNSGCuc/0.jpg)](https://www.youtube.com/watch?v=r0weTNSGCuc)
+
 ## 🚀 Features
 
 - **USSD Interface**: Interactive USSD menus for Bitcoin Lightning payments
@@ -461,7 +463,7 @@ For issues with:
 
 ## 📺 Demo Video
 
-https://www.youtube.com/watch?v=r0weTNSGCuc
+[![MeTTa AI USSD: AGI-Powered Financial Intelligence with Bitcoin Access](https://img.youtube.com/vi/r0weTNSGCuc/0.jpg)](https://www.youtube.com/watch?v=r0weTNSGCuc)
 
 ---
 
